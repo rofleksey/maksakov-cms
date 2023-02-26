@@ -7,6 +7,7 @@ const stripTags = require("striptags");
 
 const config = {
   orderEmail: process.env.ORDER_EMAIL,
+  baseUrl: process.env.BASE_URL,
 };
 
 const deliveryTypeTextMap = {
@@ -25,24 +26,38 @@ module.exports = {
   handleOrder: async (ctx, next) => {
     let html = 'Создан новый заказ!<br /><br />';
 
-    const {items, deliveryType, notes} = ctx.request.body;
+    let {items, deliveryType, notes, name, phone, email} = ctx.request.body;
 
-    if (!items || !items.length || !deliveryType || !deliveryTypeTextMap[deliveryType] || !notes || !notes.length) {
+    if (!items || !items.length || !deliveryType || !deliveryTypeTextMap[deliveryType]
+      || !name || !name.length || !phone || !phone.length || !email || !email.length) {
       return ctx.badRequest('bad request');
     }
 
-    const serverItems = await Promise.all(items.map((item) => strapi.service('api::product.product').findOne(item.id)));
+    if (!notes || !notes.length) {
+      notes = "";
+    }
+
+    const serverItems = await Promise.all(items.map((item) => strapi.service('api::product.product').findOne(item.id, {
+      populate: 'category',
+    })));
 
     let itemsPrice = 0;
     let deliveryPrice = deliveryTypePriceMap[deliveryType];
 
     items.forEach((clientItem, index) => {
       const serverItem = serverItems[index];
+      console.log(serverItem);
+      const link = `${config.baseUrl}product?productId=${serverItem.id}&categoryId=${serverItem.category.id}`
       itemsPrice += serverItem.price * clientItem.count;
-      html += `${index + 1}. ${serverItem.name} (${serverItem.price} р. x ${clientItem.count} шт.)<br />`;
+      html += `<a href="${link}">${index + 1}. ${serverItem.name}</a> (${serverItem.price} р. x ${clientItem.count} шт.)<br />`;
     });
 
-    html += `<br /><br />Комментарий: ${stripTags(notes)}<br /><br />`;
+    html += '<br /><br />';
+
+    html += `Имя: ${stripTags(name)}<br />`;
+    html += `Телефон: ${stripTags(phone)}<br />`;
+    html += `Электронная почта: ${stripTags(email)}<br />`;
+    html += `Комментарий: ${stripTags(notes)}<br /><br />`;
 
     itemsPrice = Math.round(itemsPrice);
 
