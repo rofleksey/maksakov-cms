@@ -23,6 +23,18 @@
     },
     "delivery_description": {
       "type": "richtext"
+    },
+    "contacts_images": {
+      "type": "media",
+      "multiple": true,
+      "required": true,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "contacts_description": {
+      "type": "richtext",
+      "required": true
     }
   }
 }
