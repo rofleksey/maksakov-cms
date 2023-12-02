@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+  cms:
+    image: 'rofleksey/maksakov-cms:latest'
+    container_name: cms
+    restart: always
+    volumes:
+      - ./cms-db/:/opt/app/.tmp/
+      - ./cms-uploads/:/opt/app/public/uploads/
+      - ./.env/:/opt/app/.env
+    ports:
+      - "1337:1337"
+    expose:
+      - 1337
+    healthcheck:
+      test: curl --fail http://localhost:1337 || exit 1
+      interval: 10s
+      retries: 3
+      timeout: 5s
+
+  frontend:
+    image: 'rofleksey/maksakov-frontend:latest'
+    container_name: frontend
+    restart: always
+    ports:
+      - "8080:8080"
+    expose:
+      - 8080
+    healthcheck:
+      test: curl --fail http://localhost:8080 || exit 1
+      interval: 10s
+      retries: 3
+      timeout: 5s
