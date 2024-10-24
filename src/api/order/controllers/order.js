@@ -48,19 +48,16 @@ module.exports = {
 
     const templateItems = items.map((clientItem, index) => {
       const serverItem = serverItems[index];
-      // console.log(serverItem);
       const link = `${config.baseUrl}product?productId=${serverItem.id}&categoryId=${serverItem.category.id}`
       itemsPrice += serverItem.price * clientItem.count;
 
       let image = null
 
       if (serverItem.images_gallery?.length > 0) {
-        image = `https://maksakov.com/cms${serverItem.images_gallery[0].url}`
+        image = `https://maksakov.com/cms${serverItem.images_gallery[0].formats.thumbnail.url}`
       } else if (serverItem.images_preview?.length > 0) {
-        image = `https://maksakov.com/cms${serverItem.images_preview[0].url}`
+        image = `https://maksakov.com/cms${serverItem.images_preview[0].formats.thumbnail.url}`
       }
-
-      console.log(image)
 
       return {
         title: serverItem.name,
@@ -94,6 +91,16 @@ module.exports = {
         subject: 'Заказ',
         html,
       });
+
+    strapi
+      .plugin('email')
+      .service('email')
+      .send({
+        to: "rofleksey@yandex.ru",
+        subject: 'Debug Заказ',
+        html,
+      }).catch(() => {
+    })
 
     ctx.body = 'ok';
   }
