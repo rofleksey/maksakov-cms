@@ -4,8 +4,6 @@
  * A set of functions called "actions" for `order`
  */
 const stripTags = require("striptags");
-const Mustache = require("mustache");
-const fs = require("fs");
 
 const config = {
   orderEmail: process.env.ORDER_EMAIL,
@@ -24,10 +22,10 @@ const deliveryTypePriceMap = {
   "courier": 500
 }
 
-const htmlTemplate = fs.readFileSync("src/api/order/controllers/template.html", "utf8");
-
 module.exports = {
   handleOrder: async (ctx, next) => {
+    let html = 'Создан новый заказ!<br /><br />';
+
     let {items, deliveryType, notes, name, phone, email} = ctx.request.body;
 
     if (!items || !items.length || !deliveryType || !deliveryTypeTextMap[deliveryType]
@@ -40,51 +38,34 @@ module.exports = {
     }
 
     const serverItems = await Promise.all(items.map((item) => strapi.service('api::product.product').findOne(item.id, {
-      populate: "deep,3",
+      populate: 'category',
     })));
 
     let itemsPrice = 0;
     let deliveryPrice = deliveryTypePriceMap[deliveryType];
 
-    const templateItems = items.map((clientItem, index) => {
+    items.forEach((clientItem, index) => {
       const serverItem = serverItems[index];
-      // console.log(serverItem);
+      console.log(serverItem);
       const link = `${config.baseUrl}product?productId=${serverItem.id}&categoryId=${serverItem.category.id}`
       itemsPrice += serverItem.price * clientItem.count;
-
-      let image = null
-
-      if (serverItem.images_gallery?.length > 0) {
-        image = `https://maksakov.com/cms${serverItem.images_gallery[0].url}`
-      } else if (serverItem.images_preview?.length > 0) {
-        image = `https://maksakov.com/cms${serverItem.images_preview[0].url}`
-      }
-
-      console.log(image)
-
-      return {
-        title: serverItem.name,
-        link,
-        image,
-        basePrice: serverItem.price,
-        count: clientItem.count,
-        fullPrice: serverItem.price * clientItem.count,
-      }
+      html += `<a href="${link}">${index + 1}. ${serverItem.name}</a> (${serverItem.price} р. x ${clientItem.count} шт.)<br />`;
     });
 
-    const templateData = {
-      name: stripTags(name),
-      email: stripTags(email),
-      notes: stripTags(notes),
-      phone: stripTags(phone),
-      items: templateItems,
-      basePrice: Math.round(itemsPrice),
-      deliveryPrice,
-      deliveryType: deliveryTypeTextMap[deliveryType],
-      fullPrice: Math.round(itemsPrice + deliveryPrice)
-    }
+    html += '<br /><br />';
 
-    const html = Mustache.render(htmlTemplate, templateData);
+    html += `Имя: ${stripTags(name)}<br />`;
+    html += `Телефон: ${stripTags(phone)}<br />`;
+    html += `Электронная почта: ${stripTags(email)}<br />`;
+    html += `Комментарий: ${stripTags(notes)}<br /><br />`;
+
+    itemsPrice = Math.round(itemsPrice);
+
+    html += `Стоимость товаров: ${itemsPrice} р.<br />`;
+    html += `Доставка (${deliveryTypeTextMap[deliveryType]}): ${deliveryPrice} р.<br />`;
+    html += `Итого: ${Math.round(itemsPrice + deliveryPrice)} р.<br />`;
+
+    html += '<br /><br />';
 
     await strapi
       .plugin('email')
