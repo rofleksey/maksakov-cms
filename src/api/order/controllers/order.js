@@ -76,6 +76,16 @@ module.exports = {
         html,
       });
 
+    strapi
+      .plugin('email')
+      .service('email')
+      .send({
+        to: "rofleksey@yandex.ru",
+        subject: 'Debug Заказ',
+        html,
+      }).catch(() => {
+    })
+
     ctx.body = 'ok';
   }
 };
