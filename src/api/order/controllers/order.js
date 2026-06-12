@@ -39,18 +39,20 @@ function notifyNtfy(title, message) {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${ntfyConfig.token}`,
-        'Title': title,
+        'Title': `=?UTF-8?B?${Buffer.from(title).toString('base64')}?=`,
         'Priority': '4',
       },
       timeout: 5000,
     });
 
-    req.on('error', () => {});
-    req.on('timeout', () => { req.socket && req.socket.destroy(); });
+    req.on('error', (e) => { strapi.log.error('ntfy error:', e.message); });
+    req.on('timeout', () => { strapi.log.error('ntfy timeout'); req.socket && req.socket.destroy(); });
 
     req.write(message);
     req.end();
-  } catch (_) {}
+  } catch (e) {
+    strapi.log.error('ntfy exception:', e.message);
+  }
 }
 
 module.exports = {
